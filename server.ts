@@ -15,6 +15,7 @@ import {
   resetStoredProfile 
 } from './src/server/profileStore';
 import { ProfileData } from './src/types';
+import { put } from '@vercel/blob';
 
 dotenv.config();
 
@@ -87,6 +88,76 @@ async function startServer() {
     }
     return res.status(401).json({ valid: false, success: false, message: 'Sesi admin tidak valid atau telah berakhir.' });
   });
+
+  // Upload image (Admin only)
+  app.post(
+    '/api/upload',
+    express.raw({ type: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], limit: '6mb' }),
+    async (req, res) => {
+      const token = extractToken(req);
+      if (!token || !verifyToken(token)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Akses ditolak. Sesi admin tidak valid atau telah berakhir.',
+        });
+      }
+
+      const rawContentType = (req.headers['content-type'] || '').toLowerCase().split(';')[0].trim();
+      const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowed.includes(rawContentType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Format file tidak didukung. Harap pilih gambar dengan format JPG, JPEG, PNG, atau WebP.',
+        });
+      }
+
+      const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+      if (!buffer || buffer.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'File gambar kosong atau tidak terbaca.',
+        });
+      }
+
+      const queryFilename = typeof req.query?.filename === 'string' ? req.query.filename : '';
+      const headerFilename = typeof req.headers?.['x-file-name'] === 'string' ? req.headers['x-file-name'] : '';
+      const rawFilename = queryFilename || headerFilename || `upload-${Date.now()}`;
+      const ext = rawContentType === 'image/png' ? '.png' : rawContentType === 'image/webp' ? '.webp' : '.jpg';
+      let safeName = decodeURIComponent(rawFilename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+      if (!/\.(jpg|jpeg|png|webp)$/i.test(safeName)) safeName += ext;
+
+      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      if (blobToken && blobToken.trim().length > 0) {
+        try {
+          const blob = await put(`rey-gallery/${Date.now()}-${safeName}`, buffer, {
+            access: 'public',
+            contentType: rawContentType,
+            token: blobToken.trim(),
+          });
+          return res.json({
+            success: true,
+            url: blob.url,
+            fileName: safeName,
+            storage: 'vercel-blob',
+            message: 'Gambar berhasil diupload ke Vercel Blob.',
+          });
+        } catch (err: any) {
+          console.error('[Blob upload error]:', err);
+          return res.status(500).json({ success: false, message: 'Gagal mengunggah ke Vercel Blob.' });
+        }
+      }
+
+      // Fallback Data URL
+      const dataUrl = `data:${rawContentType};base64,${buffer.toString('base64')}`;
+      return res.json({
+        success: true,
+        url: dataUrl,
+        fileName: safeName,
+        storage: 'data-url-fallback',
+        message: 'Gambar berhasil diproses.',
+      });
+    }
+  );
 
   // Update profile (Admin only)
   app.put('/api/profile', async (req, res) => {

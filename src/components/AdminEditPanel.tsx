@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ProfileData, ProjectItem, SocialLink } from '../types';
+import { ImagePickerField } from './ImagePickerField';
 
 interface AdminEditPanelProps {
   initialProfile: ProfileData;
@@ -382,19 +383,17 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                    URL Foto Profil
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.avatarUrl}
-                    onChange={(e) => handleBasicChange('avatarUrl', e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-white/35"
-                  />
-                </div>
+              {/* Foto Profil Rey (Pilih dari Galeri) */}
+              <ImagePickerField
+                label="Foto Profil Rey"
+                value={formData.avatarUrl}
+                onChange={(newUrl) => handleBasicChange('avatarUrl', newUrl)}
+                token={token}
+                aspectRatio="square"
+                helperText="Pilih foto profil langsung dari galeri HP atau file picker PC. Format JPG, PNG, WebP."
+              />
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-neutral-300 mb-1.5">
                     Status Teks
@@ -672,15 +671,15 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-[11px] text-neutral-400 mb-1">URL Gambar</label>
-                        <input
-                          type="text"
-                          value={proj.imageUrl}
-                          onChange={(e) => handleUpdateProject(proj.id, { imageUrl: e.target.value })}
-                          className="w-full px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white text-xs font-mono"
-                        />
-                      </div>
+                      {/* Gambar Sampul Proyek (Pilih dari Galeri) */}
+                      <ImagePickerField
+                        label="Gambar Sampul Proyek"
+                        value={proj.imageUrl}
+                        onChange={(newUrl) => handleUpdateProject(proj.id, { imageUrl: newUrl })}
+                        token={token}
+                        aspectRatio="wide"
+                        helperText="Pilih tangkapan layar atau mock-up proyek langsung dari galeri HP atau PC."
+                      />
                     </div>
                   </div>
                 ))}
