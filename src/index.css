@@ -19,96 +19,118 @@
   }
 }
 
-/* Liquid Glass Core Utilities */
+/* Liquid Glass Core Utilities (iOS-style tactile frosted glass with subtle rim light) */
 .liquid-glass {
-  background: rgba(15, 17, 24, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(20, 16, 32, 0.6) 45%, 
+    rgba(10, 9, 16, 0.72) 100%
+  );
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 
-    0 12px 36px -8px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    0 16px 40px -12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 20px 0 rgba(168, 85, 247, 0.025);
   position: relative;
   transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .liquid-glass:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(18, 21, 30, 0.72);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    0 20px 48px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 24px 0 rgba(168, 85, 247, 0.045);
 }
 
 .liquid-glass-subtle {
-  background: rgba(14, 16, 22, 0.45);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.035) 0%, 
+    rgba(18, 15, 28, 0.45) 50%, 
+    rgba(11, 10, 18, 0.55) 100%
+  );
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 
-    0 8px 24px -4px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+    0 10px 28px -6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 }
 
 .liquid-glass-subtle:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(18, 20, 28, 0.55);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(22, 18, 34, 0.6);
 }
 
 .liquid-glass-pill {
-  background: rgba(16, 18, 26, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(22, 18, 36, 0.75) 50%, 
+    rgba(12, 10, 20, 0.82) 100%
+  );
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   box-shadow: 
-    0 16px 40px -10px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+    0 16px 44px -10px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 16px 0 rgba(168, 85, 247, 0.04);
 }
 
-/* Subtle Organic Ambient Blobs */
-@keyframes liquid-float-1 {
+/* Organic, ultra-slow floating ambient lighting */
+@keyframes liquid-drift-tr {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(24px, -32px, 0) scale(1.08);
+    transform: translate3d(-24px, 20px, 0) scale(1.06);
   }
 }
 
-@keyframes liquid-float-2 {
+@keyframes liquid-drift-cl {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(-30px, 20px, 0) scale(0.94);
+    transform: translate3d(26px, -18px, 0) scale(0.96);
   }
 }
 
-@keyframes liquid-float-3 {
+@keyframes liquid-drift-b {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(20px, 35px, 0) scale(1.05);
+    transform: translate3d(-20px, -24px, 0) scale(1.05);
   }
 }
 
-.liquid-blob-1 {
-  animation: liquid-float-1 22s ease-in-out infinite;
+.liquid-blob-tr {
+  animation: liquid-drift-tr 24s ease-in-out infinite;
   will-change: transform;
 }
 
-.liquid-blob-2 {
-  animation: liquid-float-2 26s ease-in-out infinite;
+.liquid-blob-cl {
+  animation: liquid-drift-cl 28s ease-in-out infinite;
   will-change: transform;
 }
 
-.liquid-blob-3 {
-  animation: liquid-float-3 30s ease-in-out infinite;
+.liquid-blob-b {
+  animation: liquid-drift-b 32s ease-in-out infinite;
   will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .liquid-blob-1,
-  .liquid-blob-2,
-  .liquid-blob-3 {
+  .liquid-blob-tr,
+  .liquid-blob-cl,
+  .liquid-blob-b {
     animation: none !important;
   }
 }
