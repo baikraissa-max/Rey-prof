@@ -8,13 +8,13 @@ import {
   createToken, 
   verifyToken, 
   extractToken 
-} from './api/_lib/auth.ts';
+} from './api/_lib/auth';
 import { 
   getStoredProfile, 
   saveStoredProfile, 
   resetStoredProfile 
-} from './api/_lib/profileStore.ts';
-import { ProfileData } from './src/types.ts';
+} from './api/_lib/profileStore';
+import { ProfileData } from './src/types';
 
 dotenv.config();
 
