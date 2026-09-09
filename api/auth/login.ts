@@ -1,7 +1,11 @@
 import crypto from 'crypto';
 
 function getAdminPassword(): string | null {
-  const pwd = process.env.ADMIN_PASSWORD;
+  const pwd =
+    process.env.ADMIN_PASSWORD ||
+    process.env.admin_password ||
+    process.env.Admin_Password ||
+    process.env.VITE_ADMIN_PASSWORD;
   if (!pwd || typeof pwd !== 'string') return null;
   // Strip quotes if user entered them in Vercel UI
   const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
