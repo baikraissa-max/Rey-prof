@@ -434,7 +434,53 @@ export default async function handler(req: any, res: any) {
     }
   }
 
-  res.setHeader('Allow', 'GET, PUT');
+  // POST (with reset) or DELETE: Reset Profile (Admin Only)
+  if (req.method === 'DELETE' || (req.method === 'POST' && req.query?.action === 'reset')) {
+    const token = extractToken(req);
+
+    if (!token || !verifyToken(token)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Akses ditolak. Token tidak valid atau sesi admin telah berakhir.',
+      });
+    }
+
+    try {
+      const kv = getKvConfig();
+      if (kv) {
+        try {
+          await fetch(`${kv.url}/del/${KV_KEY}`, {
+            headers: { Authorization: `Bearer ${kv.token}` },
+          });
+        } catch (err) {
+          console.error('[KV Store] Error deleting KV key:', err);
+        }
+      }
+
+      try {
+        const filePath = getLocalFilePath();
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.warn('[File Store] Error deleting local file on reset:', err);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profil berhasil direset ke pengaturan awal.',
+        profile: initialProfileData,
+      });
+    } catch (err: any) {
+      console.error('[API Profile Reset Error]:', err);
+      return res.status(500).json({
+        success: false,
+        message: err?.message || 'Gagal mereset profil.',
+      });
+    }
+  }
+
+  res.setHeader('Allow', 'GET, PUT, DELETE, POST');
   return res.status(405).json({
     success: false,
     message: 'Method Not Allowed. Gunakan GET atau PUT.',

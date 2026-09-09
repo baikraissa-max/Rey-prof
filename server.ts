@@ -8,12 +8,12 @@ import {
   createToken, 
   verifyToken, 
   extractToken 
-} from './api/_lib/auth';
+} from './src/server/auth';
 import { 
   getStoredProfile, 
   saveStoredProfile, 
   resetStoredProfile 
-} from './api/_lib/profileStore';
+} from './src/server/profileStore';
 import { ProfileData } from './src/types';
 
 dotenv.config();
@@ -121,7 +121,7 @@ async function startServer() {
   });
 
   // Reset profile to defaults (Admin only)
-  app.post('/api/profile/reset', async (req, res) => {
+  app.post(['/api/profile/reset', '/api/reset'], async (req, res) => {
     const token = extractToken(req);
 
     if (!token || !verifyToken(token)) {

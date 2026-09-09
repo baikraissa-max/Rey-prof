@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/profile/reset",
+      "destination": "/api/reset"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
