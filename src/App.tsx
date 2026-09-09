@@ -155,7 +155,7 @@ export default function App() {
       </header>
 
       {/* Main Content Sections */}
-      <main className="relative z-10 w-full max-w-2xl mx-auto px-2 sm:px-4 pb-12">
+      <main className="relative z-10 w-full max-w-2xl mx-auto px-2 sm:px-4 pb-28 sm:pb-32">
         {/* 1. Hero Profile (with 5-tap secret access on REY) */}
         <Hero
           profile={profile}

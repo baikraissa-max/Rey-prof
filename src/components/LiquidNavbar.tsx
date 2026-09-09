@@ -158,7 +158,7 @@ export const LiquidNavbar: React.FC<LiquidNavbarProps> = ({
   return (
     <aside 
       aria-label="Floating Navigation Container"
-      className="fixed bottom-5 sm:bottom-7 left-1/2 -translate-x-1/2 z-40 max-w-[94vw] pointer-events-auto select-none"
+      className="fixed bottom-5 sm:bottom-7 left-1/2 -translate-x-1/2 z-40 w-[92vw] max-w-[430px] sm:w-auto sm:max-w-none pointer-events-auto select-none"
     >
       <nav
         ref={navRef}
@@ -168,7 +168,7 @@ export const LiquidNavbar: React.FC<LiquidNavbarProps> = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={() => setHoveredTab(null)}
-        className="relative flex items-center gap-1 sm:gap-1.5 p-1.5 rounded-full liquid-glass-pill backdrop-blur-2xl border border-white/[0.14] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.22),inset_0_0_20px_0_rgba(168,85,247,0.04)]"
+        className="relative flex items-center justify-between sm:justify-center gap-1 sm:gap-2 p-2 sm:p-2.5 rounded-full liquid-glass-pill backdrop-blur-2xl border border-white/[0.15] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.25),inset_0_0_24px_0_rgba(168,85,247,0.06)] h-[68px] sm:h-[62px] w-full sm:w-auto"
       >
         {/* Dynamic Liquid Glass Indicator (Magnetic highlight that smoothly springs between tabs) */}
         {isReady && (
@@ -187,12 +187,12 @@ export const LiquidNavbar: React.FC<LiquidNavbarProps> = ({
                 ? { duration: 0 }
                 : {
                     type: 'spring',
-                    stiffness: 420,
+                    stiffness: 400,
                     damping: 32,
                     mass: 0.65,
                   }
             }
-            className="absolute top-0 left-0 rounded-full pointer-events-none z-0 bg-gradient-to-b from-white/[0.2] via-white/[0.09] to-white/[0.04] border border-white/20 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.4),0_0_16px_rgba(168,85,247,0.12)] backdrop-blur-md"
+            className="absolute top-0 left-0 rounded-full pointer-events-none z-0 bg-gradient-to-b from-white/[0.22] via-white/[0.1] to-white/[0.04] border border-white/25 shadow-[inset_0_1px_1.5px_0_rgba(255,255,255,0.45),0_6px_20px_rgba(0,0,0,0.45),0_0_20px_rgba(168,85,247,0.14)] backdrop-blur-md"
           />
         )}
 
@@ -212,13 +212,13 @@ export const LiquidNavbar: React.FC<LiquidNavbarProps> = ({
               type="button"
               onClick={() => handleClick(item)}
               onMouseEnter={() => setHoveredTab(item.id)}
-              className="group relative z-10 min-h-[42px] px-3.5 sm:px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 select-none flex items-center gap-1.5 focus:outline-none active:scale-95"
+              className="group relative z-10 flex-1 sm:flex-initial flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 px-3 sm:px-5 py-1.5 sm:py-2 h-full rounded-full transition-all duration-200 select-none focus:outline-none active:scale-95"
             >
               {/* Subtle hover scale on individual item content for iOS tactile feel */}
               <motion.div 
-                className="flex items-center gap-1.5"
+                className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5"
                 animate={{
-                  scale: isTargeted ? 1.04 : 1,
+                  scale: isTargeted ? 1.05 : 1,
                 }}
                 transition={
                   shouldReduceMotion
@@ -227,30 +227,23 @@ export const LiquidNavbar: React.FC<LiquidNavbarProps> = ({
                 }
               >
                 <Icon
-                  className={`w-4 h-4 transition-colors duration-200 shrink-0 ${
+                  className={`w-5 h-5 transition-colors duration-200 shrink-0 ${
                     isTargeted || isActuallyActive
-                      ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+                      ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]'
                       : 'text-neutral-400 group-hover:text-neutral-200'
                   }`}
                 />
 
                 <span
-                  className={`transition-colors duration-200 hidden sm:inline tracking-tight ${
+                  className={`transition-colors duration-200 text-[11px] sm:text-xs md:text-sm font-medium tracking-tight whitespace-nowrap ${
                     isTargeted || isActuallyActive
-                      ? 'text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                      ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]'
                       : 'text-neutral-400 group-hover:text-neutral-200'
                   }`}
                 >
                   {item.label}
                 </span>
               </motion.div>
-
-              {/* Mini active dot indicator on mobile when label is hidden */}
-              {isActuallyActive && (
-                <span 
-                  className="sm:hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/80 shadow-[0_0_6px_rgba(255,255,255,0.8)]" 
-                />
-              )}
             </button>
           );
         })}
