@@ -2,10 +2,8 @@ import crypto from 'crypto';
 
 function getAdminPassword(): string | null {
   const pwd =
-    process.env.ADMIN_PASSWORD ||
-    process.env.admin_password ||
-    process.env.Admin_Password ||
-    process.env.VITE_ADMIN_PASSWORD;
+    process.env.ADMIN_PASWORD_REY ||
+    process.env.admin_pasword_rey;
   if (!pwd || typeof pwd !== 'string') return null;
   const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
   return trimmed.length > 0 ? trimmed : null;

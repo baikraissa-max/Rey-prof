@@ -52,10 +52,10 @@ async function startServer() {
 
     const configuredPassword = getAdminPassword();
     if (!configuredPassword) {
-      console.error('[AUTH ERROR] ADMIN_PASSWORD belum diset di environment variables.');
+      console.error('[AUTH ERROR] ADMIN_PASWORD_REY belum diset di environment variables.');
       return res.status(500).json({
         success: false,
-        message: 'ADMIN_PASSWORD belum dikonfigurasi di Environment Variables server.',
+        message: 'ADMIN_PASWORD_REY belum dikonfigurasi di Environment Variables server.',
       });
     }
 

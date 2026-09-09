@@ -2,10 +2,8 @@ import crypto from 'crypto';
 
 function getAdminPassword(): string | null {
   const pwd =
-    process.env.ADMIN_PASSWORD ||
-    process.env.admin_password ||
-    process.env.Admin_Password ||
-    process.env.VITE_ADMIN_PASSWORD;
+    process.env.ADMIN_PASWORD_REY ||
+    process.env.admin_pasword_rey;
   if (!pwd || typeof pwd !== 'string') return null;
   // Strip quotes if user entered them in Vercel UI
   const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
@@ -112,13 +110,13 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // Check if ADMIN_PASSWORD environment variable is configured
+    // Check if ADMIN_PASWORD_REY environment variable is configured
     const configuredPassword = getAdminPassword();
     if (!configuredPassword) {
-      console.error('[AUTH ERROR] ADMIN_PASSWORD belum dikonfigurasi di Environment Variables Vercel.');
+      console.error('[AUTH ERROR] ADMIN_PASWORD_REY belum dikonfigurasi di Environment Variables Vercel.');
       return res.status(500).json({
         success: false,
-        message: 'ADMIN_PASSWORD belum dikonfigurasi di Environment Variables Vercel.',
+        message: 'ADMIN_PASWORD_REY belum dikonfigurasi di Environment Variables Vercel.',
       });
     }
 

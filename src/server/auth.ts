@@ -6,10 +6,8 @@ import crypto from 'crypto';
  */
 export function getAdminPassword(): string | null {
   const pwd =
-    process.env.ADMIN_PASSWORD ||
-    process.env.admin_password ||
-    process.env.Admin_Password ||
-    process.env.VITE_ADMIN_PASSWORD;
+    process.env.ADMIN_PASWORD_REY ||
+    process.env.admin_pasword_rey;
   if (!pwd || typeof pwd !== 'string') {
     return null;
   }
@@ -19,7 +17,7 @@ export function getAdminPassword(): string | null {
 
 /**
  * Returns a stable server secret for signing session tokens.
- * Prioritizes ADMIN_SECRET if provided; otherwise derives a stable hash from ADMIN_PASSWORD.
+ * Prioritizes ADMIN_SECRET if provided; otherwise derives a stable hash from ADMIN_PASWORD_REY.
  */
 export function getServerSecret(): string {
   if (process.env.ADMIN_SECRET && process.env.ADMIN_SECRET.trim().length > 0) {
@@ -34,7 +32,7 @@ export function getServerSecret(): string {
       .digest('hex');
   }
 
-  // Temporary fallback secret if neither is set (prevents crash, but tokens won't validate without ADMIN_PASSWORD)
+  // Temporary fallback secret if neither is set (prevents crash, but tokens won't validate without ADMIN_PASWORD_REY)
   return 'unconfigured-secret-key-rey-profil';
 }
 
