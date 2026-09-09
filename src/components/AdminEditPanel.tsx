@@ -139,7 +139,15 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
         body: JSON.stringify(formData)
       });
 
-      const resData = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let resData: any = {};
+      if (contentType.includes('application/json')) {
+        try {
+          resData = await response.json();
+        } catch {
+          resData = {};
+        }
+      }
 
       if (response.ok && resData.success) {
         setSaveStatus('success');
@@ -147,11 +155,21 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
         setTimeout(() => setSaveStatus('idle'), 2500);
       } else {
         setSaveStatus('error');
-        setErrorMessage(resData.error || 'Gagal menyimpan perubahan.');
+        if (response.status === 401) {
+          setErrorMessage('Sesi admin berakhir atau tidak valid. Silakan login kembali.');
+        } else if (response.status === 403) {
+          setErrorMessage('Akses ditolak (403).');
+        } else if (response.status === 404) {
+          setErrorMessage('Endpoint API /api/profile tidak ditemukan (404).');
+        } else if (response.status >= 500) {
+          setErrorMessage(resData.message || resData.error || 'Terjadi kesalahan server saat menyimpan (500).');
+        } else {
+          setErrorMessage(resData.message || resData.error || 'Gagal menyimpan perubahan.');
+        }
       }
     } catch (err) {
       setSaveStatus('error');
-      setErrorMessage('Terjadi kendala saat menghubungi server.');
+      setErrorMessage('Server atau API tidak dapat dihubungi (Network error).');
     } finally {
       setIsSaving(false);
     }
@@ -170,14 +188,27 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
         }
       });
 
-      const resData = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let resData: any = {};
+      if (contentType.includes('application/json')) {
+        try {
+          resData = await response.json();
+        } catch {
+          resData = {};
+        }
+      }
+
       if (response.ok && resData.profile) {
         setFormData(resData.profile);
         onSaveSuccess(resData.profile);
         setSaveStatus('success');
+      } else {
+        setSaveStatus('error');
+        setErrorMessage(resData.message || 'Gagal mereset profil.');
       }
     } catch {
-      alert('Gagal mereset profil.');
+      setSaveStatus('error');
+      setErrorMessage('Server atau API tidak dapat dihubungi saat mereset profil.');
     } finally {
       setIsSaving(false);
     }

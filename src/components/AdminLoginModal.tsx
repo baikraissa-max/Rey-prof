@@ -43,15 +43,33 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         body: JSON.stringify({ password: password.trim() }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+      }
 
       if (response.ok && data.token) {
         onLoginSuccess(data.token);
       } else {
-        setErrorMessage(data.error || 'Password atau PIN admin salah.');
+        if (response.status === 401) {
+          setErrorMessage(data.message || data.error || 'Password atau PIN admin salah.');
+        } else if (response.status === 403) {
+          setErrorMessage(data.message || 'Akses ditolak (403).');
+        } else if (response.status === 404) {
+          setErrorMessage('API endpoint login tidak ditemukan (404). Periksa deployment Vercel.');
+        } else if (response.status >= 500) {
+          setErrorMessage(data.message || data.error || 'Terjadi kesalahan pada server (500). Periksa konfigurasi ADMIN_PASSWORD.');
+        } else {
+          setErrorMessage(data.message || data.error || `Login gagal (Status ${response.status}).`);
+        }
       }
     } catch (err) {
-      setErrorMessage('Terjadi kendala jaringan saat menghubungi server.');
+      setErrorMessage('Server atau API tidak dapat dihubungi (Network error).');
     } finally {
       setIsLoading(false);
     }
