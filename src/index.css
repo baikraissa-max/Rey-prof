@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: #070709;
+    color: #e4e5eb;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Liquid Glass Core Utilities */
+.liquid-glass {
+  background: rgba(15, 17, 24, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 12px 36px -8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.liquid-glass:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(18, 21, 30, 0.72);
+}
+
+.liquid-glass-subtle {
+  background: rgba(14, 16, 22, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 8px 24px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.liquid-glass-subtle:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 28, 0.55);
+}
+
+.liquid-glass-pill {
+  background: rgba(16, 18, 26, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 16px 40px -10px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Subtle Organic Ambient Blobs */
+@keyframes liquid-float-1 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -32px, 0) scale(1.08);
+  }
+}
+
+@keyframes liquid-float-2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-30px, 20px, 0) scale(0.94);
+  }
+}
+
+@keyframes liquid-float-3 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(20px, 35px, 0) scale(1.05);
+  }
+}
+
+.liquid-blob-1 {
+  animation: liquid-float-1 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+.liquid-blob-2 {
+  animation: liquid-float-2 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+.liquid-blob-3 {
+  animation: liquid-float-3 30s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-blob-1,
+  .liquid-blob-2,
+  .liquid-blob-3 {
+    animation: none !important;
+  }
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}

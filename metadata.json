@@ -1,0 +1,6 @@
+{
+  "name": "Raisa Profil",
+  "description": "Personal digital profile with Dark Liquid Glass UI for Rey — clean, minimal, and premium mobile-first experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
