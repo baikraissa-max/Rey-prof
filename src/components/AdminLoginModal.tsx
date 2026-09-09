@@ -63,7 +63,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         } else if (response.status === 404) {
           setErrorMessage('API endpoint login tidak ditemukan (404). Periksa deployment Vercel.');
         } else if (response.status >= 500) {
-          setErrorMessage(data.message || data.error || 'Terjadi kesalahan pada server (500). Periksa konfigurasi ADMIN_PASSWORD.');
+          setErrorMessage(data.message || data.error || 'Terjadi kesalahan pada server (500). Periksa log Vercel Functions.');
         } else {
           setErrorMessage(data.message || data.error || `Login gagal (Status ${response.status}).`);
         }

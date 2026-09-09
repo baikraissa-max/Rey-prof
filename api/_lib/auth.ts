@@ -6,10 +6,11 @@ import crypto from 'crypto';
  */
 export function getAdminPassword(): string | null {
   const pwd = process.env.ADMIN_PASSWORD;
-  if (!pwd || typeof pwd !== 'string' || pwd.trim().length === 0) {
+  if (!pwd || typeof pwd !== 'string') {
     return null;
   }
-  return pwd.trim();
+  const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 /**
