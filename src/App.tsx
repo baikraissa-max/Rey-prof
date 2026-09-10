@@ -8,6 +8,7 @@ import { ContactSection } from './components/ContactSection';
 import { LiquidNavbar, NavTabId } from './components/LiquidNavbar';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminEditPanel } from './components/AdminEditPanel';
+import { PWAInstallButton } from './components/PWAInstallButton';
 import { initialProfileData } from './data/initialProfile';
 import { ProfileData } from './types';
 import { Sliders, ShieldCheck } from 'lucide-react';
@@ -19,11 +20,17 @@ export default function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [adminToken, setAdminToken] = useState<string | null>(null);
 
-  // Fetch initial profile data from backend
+  // Fetch initial profile data from backend with strict cache-busting
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await fetch('/api/profile');
+        const res = await fetch(`/api/profile?_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+          },
+        });
         if (res.ok) {
           const data = await res.json();
           if (data && data.name) {
@@ -131,7 +138,10 @@ export default function App() {
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* PWA Install Button (Android Home Screen / iOS helper) */}
+          <PWAInstallButton />
+
           {/* Admin badge if already logged in */}
           {adminToken && (
             <button
