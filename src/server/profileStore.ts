@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { put, list, del } from '@vercel/blob';
 
 export interface LinkItem {
   id: string;
@@ -187,14 +188,42 @@ export const initialProfileData: ProfileData = {
 };
 
 const KV_KEY = 'rey_profile_v1';
+const BLOB_PATHNAME = 'rey-profile/profile.json';
+
+// In-memory cache to guarantee fast response within execution lifecycle
+let memoryCache: ProfileData | null = null;
+
+// Helper to check for Supabase configuration
+function getSupabaseConfig(): { url: string; key: string } | null {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (url && key && typeof url === 'string' && url.startsWith('http')) {
+    return { url: url.replace(/\/$/, ''), key: key.trim() };
+  }
+  return null;
+}
+
+// Helper to check for Vercel Blob configuration
+function getBlobConfig(): { token: string } | null {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (token && typeof token === 'string' && token.trim().length > 0) {
+    return { token: token.trim() };
+  }
+  return null;
+}
 
 // Helper to check for Vercel KV / Upstash Redis configuration
 function getKvConfig(): { url: string; token: string } | null {
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (url && token && url.startsWith('http')) {
-    return { url: url.replace(/\/$/, ''), token };
+  if (url && token && typeof url === 'string' && url.startsWith('http')) {
+    return { url: url.replace(/\/$/, ''), token: token.trim() };
   }
   return null;
 }
@@ -218,57 +247,184 @@ function getLocalFilePath(): string {
 
 /**
  * Retrieve current profile data.
- * Checks Vercel KV first, then local filesystem, and falls back to initialProfileData.
+ * Checks in order:
+ * 1. Supabase (if configured)
+ * 2. Vercel Blob Storage (if configured)
+ * 3. Vercel KV / Upstash Redis (if configured)
+ * 4. Local File System
+ * 5. In-memory cache
+ * 6. Default initialProfileData
  */
 export async function getStoredProfile(): Promise<ProfileData> {
-  const kv = getKvConfig();
+  // 1. Try Supabase PostgREST
+  const supabase = getSupabaseConfig();
+  if (supabase) {
+    try {
+      const res = await fetch(
+        `${supabase.url}/rest/v1/site_profile?id=eq.${KV_KEY}&select=data`,
+        {
+          headers: {
+            apikey: supabase.key,
+            Authorization: `Bearer ${supabase.key}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+          },
+        }
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0 && rows[0]?.data?.name) {
+          const profile = rows[0].data as ProfileData;
+          memoryCache = profile;
+          return profile;
+        }
+      }
+    } catch (err) {
+      console.warn('[Storage] Error reading from Supabase:', err);
+    }
+  }
 
-  // 1. Try Vercel KV / Upstash Redis if configured
+  // 2. Try Vercel Blob Storage
+  const blob = getBlobConfig();
+  if (blob) {
+    try {
+      const { blobs } = await list({
+        prefix: BLOB_PATHNAME,
+        token: blob.token,
+        limit: 1,
+      });
+
+      if (blobs && blobs.length > 0 && blobs[0].url) {
+        const downloadUrl = `${blobs[0].url}${blobs[0].url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+        const blobRes = await fetch(downloadUrl, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+          },
+        });
+
+        if (blobRes.ok) {
+          const json = await blobRes.json();
+          if (json && json.name) {
+            memoryCache = json as ProfileData;
+            return json as ProfileData;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Storage] Error reading from Vercel Blob:', err);
+    }
+  }
+
+  // 3. Try Vercel KV / Upstash Redis
+  const kv = getKvConfig();
   if (kv) {
     try {
       const res = await fetch(`${kv.url}/get/${KV_KEY}`, {
-        headers: { Authorization: `Bearer ${kv.token}` },
+        headers: {
+          Authorization: `Bearer ${kv.token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+        cache: 'no-store',
       });
       if (res.ok) {
         const json = await res.json();
         if (json && json.result) {
           const parsed = typeof json.result === 'string' ? JSON.parse(json.result) : json.result;
           if (parsed && parsed.name) {
+            memoryCache = parsed as ProfileData;
             return parsed as ProfileData;
           }
         }
       }
     } catch (err) {
-      console.error('[KV Store] Error reading from KV:', err);
+      console.warn('[Storage] Error reading from Vercel KV:', err);
     }
   }
 
-  // 2. Try Local File System
+  // 4. Try Local File System
   try {
     const filePath = getLocalFilePath();
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, 'utf-8');
       const data = JSON.parse(raw);
       if (data && data.name) {
+        memoryCache = data as ProfileData;
         return data as ProfileData;
       }
     }
   } catch (err) {
-    console.warn('[File Store] Could not read local profile file:', err);
+    console.warn('[Storage] Could not read local profile file:', err);
   }
 
-  // 3. Fallback to Initial Profile Data
+  // 5. In-memory cache
+  if (memoryCache && memoryCache.name) {
+    return memoryCache;
+  }
+
+  // 6. Fallback to Initial Profile Data
   return initialProfileData;
 }
 
 /**
- * Save updated profile data.
- * Writes to Vercel KV if available, otherwise writes to local/ephemeral filesystem.
+ * Save updated profile data permanently.
+ * Replicates across all configured storages to ensure zero-loss persistence.
  */
 export async function saveStoredProfile(data: ProfileData): Promise<void> {
-  const kv = getKvConfig();
+  memoryCache = data;
+  let hasSavedPersistent = false;
+  let saveErrors: string[] = [];
 
-  // 1. If Vercel KV is configured, write permanently to KV
+  // 1. Save to Supabase (if configured)
+  const supabase = getSupabaseConfig();
+  if (supabase) {
+    try {
+      const res = await fetch(`${supabase.url}/rest/v1/site_profile`, {
+        method: 'POST',
+        headers: {
+          apikey: supabase.key,
+          Authorization: `Bearer ${supabase.key}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          id: KV_KEY,
+          data: data,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        hasSavedPersistent = true;
+      } else {
+        const errText = await res.text().catch(() => '');
+        saveErrors.push(`Supabase error: ${res.status} ${errText}`);
+      }
+    } catch (err: any) {
+      saveErrors.push(`Supabase exception: ${err?.message}`);
+    }
+  }
+
+  // 2. Save to Vercel Blob Storage (if configured)
+  const blob = getBlobConfig();
+  if (blob) {
+    try {
+      await put(BLOB_PATHNAME, JSON.stringify(data, null, 2), {
+        access: 'public',
+        contentType: 'application/json',
+        addRandomSuffix: false,
+        token: blob.token,
+        cacheControlMaxAge: 0,
+      });
+      hasSavedPersistent = true;
+    } catch (err: any) {
+      saveErrors.push(`Vercel Blob exception: ${err?.message}`);
+    }
+  }
+
+  // 3. Save to Vercel KV / Upstash Redis (if configured)
+  const kv = getKvConfig();
   if (kv) {
     try {
       const res = await fetch(`${kv.url}/set/${KV_KEY}`, {
@@ -280,48 +436,90 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) {
-        throw new Error(`KV set returned status ${res.status}`);
+      if (res.ok) {
+        hasSavedPersistent = true;
+      } else {
+        saveErrors.push(`Vercel KV error: ${res.status}`);
       }
-      return;
-    } catch (err) {
-      console.error('[KV Store] Error saving to KV:', err);
+    } catch (err: any) {
+      saveErrors.push(`Vercel KV exception: ${err?.message}`);
     }
   }
 
-  // 2. Write to local filesystem
+  // 4. Always update local filesystem if accessible
   try {
     const filePath = getLocalFilePath();
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('[File Store] Failed to save profile to disk:', err);
-    throw new Error('Gagal menyimpan file profil ke penyimpanan server.');
+    hasSavedPersistent = true;
+  } catch (err: any) {
+    saveErrors.push(`Local filesystem write error: ${err?.message}`);
+  }
+
+  if (!hasSavedPersistent && saveErrors.length > 0) {
+    console.error('[Storage Save Error]', saveErrors);
+    throw new Error(`Gagal menyimpan ke penyimpanan server: ${saveErrors.join(', ')}`);
   }
 }
 
 /**
- * Reset profile back to initial defaults.
+ * Reset profile back to initial defaults across all storages.
  */
 export async function resetStoredProfile(): Promise<ProfileData> {
-  const kv = getKvConfig();
+  memoryCache = initialProfileData;
 
+  // 1. Reset Supabase
+  const supabase = getSupabaseConfig();
+  if (supabase) {
+    try {
+      await fetch(`${supabase.url}/rest/v1/site_profile?id=eq.${KV_KEY}`, {
+        method: 'DELETE',
+        headers: {
+          apikey: supabase.key,
+          Authorization: `Bearer ${supabase.key}`,
+        },
+      });
+    } catch (err) {
+      console.warn('[Storage] Error deleting Supabase row:', err);
+    }
+  }
+
+  // 2. Reset Vercel Blob
+  const blob = getBlobConfig();
+  if (blob) {
+    try {
+      const { blobs } = await list({
+        prefix: BLOB_PATHNAME,
+        token: blob.token,
+        limit: 1,
+      });
+      if (blobs && blobs.length > 0 && blobs[0].url) {
+        await del(blobs[0].url, { token: blob.token });
+      }
+    } catch (err) {
+      console.warn('[Storage] Error deleting Vercel Blob file:', err);
+    }
+  }
+
+  // 3. Reset Vercel KV
+  const kv = getKvConfig();
   if (kv) {
     try {
       await fetch(`${kv.url}/del/${KV_KEY}`, {
         headers: { Authorization: `Bearer ${kv.token}` },
       });
     } catch (err) {
-      console.error('[KV Store] Error deleting KV key:', err);
+      console.warn('[Storage] Error deleting Vercel KV key:', err);
     }
   }
 
+  // 4. Reset Local File
   try {
     const filePath = getLocalFilePath();
     if (fs.existsSync(filePath)) {
       fs.writeFileSync(filePath, JSON.stringify(initialProfileData, null, 2), 'utf-8');
     }
   } catch (err) {
-    console.warn('[File Store] Error resetting local file:', err);
+    console.warn('[Storage] Error resetting local file:', err);
   }
 
   return initialProfileData;

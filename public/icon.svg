@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="ambientGlow" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#9333ea" stop-opacity="0.5" />
+      <stop offset="50%" stop-color="#6b21a8" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#060608" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
+      <stop offset="40%" stop-color="#1e1832" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#0b0a14" stop-opacity="0.85" />
+    </linearGradient>
+    <linearGradient id="letterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f3e8ff" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="#a855f7" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.08" />
+    </linearGradient>
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#a855f7" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Deep Midnight Canvas -->
+  <rect width="512" height="512" rx="112" fill="#060608" />
+
+  <!-- Ambient Violet Glow Behind Glass -->
+  <circle cx="256" cy="220" r="210" fill="url(#ambientGlow)" />
+
+  <!-- Liquid Glass Squircle Card -->
+  <rect x="64" y="64" width="384" height="384" rx="88" fill="url(#glassGrad)" stroke="url(#borderGrad)" stroke-width="2.5" filter="url(#subtleGlow)" />
+
+  <!-- Inner Top Rim Highlight -->
+  <path d="M 120 72 Q 256 68 392 72" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.3" fill="none" stroke-linecap="round" />
+
+  <!-- Stylized Monogram "R" in Liquid Glass Style -->
+  <g fill="url(#letterGrad)" transform="translate(146, 126)">
+    <!-- Main stem -->
+    <rect x="20" y="20" width="38" height="220" rx="19" />
+    
+    <!-- Top bowl -->
+    <path d="M 40 20 H 135 C 185 20 215 50 215 95 C 215 140 185 170 135 170 H 40 Z M 58 58 V 132 H 132 C 160 132 178 118 178 95 C 178 72 160 58 132 58 Z" />
+    
+    <!-- Dynamic leg -->
+    <path d="M 116 150 L 195 232 C 202 239 202 250 194 256 C 187 262 176 261 169 253 L 95 175 Z" />
+    
+    <!-- Glowing Accent Dot -->
+    <circle cx="198" cy="48" r="8" fill="#c084fc" opacity="0.9" />
+  </g>
+</svg>
