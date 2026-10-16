@@ -1,81 +1,4 @@
-import crypto from 'crypto';
-
-function getAdminPassword(): string {
-  const pwd =
-    process.env.ADMIN_PASWORD_REY ||
-    process.env.admin_pasword_rey;
-  if (!pwd || typeof pwd !== 'string') return 'reyadmin';
-  // Strip quotes if user entered them in Vercel UI
-  const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
-  return trimmed.length > 0 ? trimmed : 'reyadmin';
-}
-
-function getServerSecret(): string {
-  if (process.env.ADMIN_SECRET && process.env.ADMIN_SECRET.trim().length > 0) {
-    return process.env.ADMIN_SECRET.trim().replace(/^["'](.*)["']$/, '$1');
-  }
-  const pwd = getAdminPassword();
-  if (pwd) {
-    return crypto
-      .createHmac('sha256', 'rey-profil-auth-salt-stable-v1')
-      .update(pwd)
-      .digest('hex');
-  }
-  return 'fallback-rey-profil-secret-salt-2026';
-}
-
-function timingSafeMatch(input: string, target: string): boolean {
-  if (!input || !target) return false;
-  const bufA = Buffer.from(input.trim());
-  const bufB = Buffer.from(target.trim());
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
-
-function verifyAdminPassword(input: string | undefined | null): boolean {
-  if (!input || typeof input !== 'string') return false;
-
-  const cleanInput = input.trim().replace(/^["'](.*)["']$/, '$1').trim();
-  if (cleanInput.length === 0) return false;
-
-  const configured = getAdminPassword();
-
-  if (timingSafeMatch(cleanInput, configured)) {
-    return true;
-  }
-
-  if (timingSafeMatch(cleanInput.toLowerCase(), configured.toLowerCase())) {
-    return true;
-  }
-
-  const acceptedKeywords = [
-    'reyadmin',
-    'rey',
-    'admin',
-    'rey123',
-    'admin123',
-    '123456',
-    '1234',
-    'baikraissa',
-    'raissa',
-  ];
-
-  const lower = cleanInput.toLowerCase();
-  for (const kw of acceptedKeywords) {
-    if (lower === kw) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function createToken(payload: { role: string; exp: number }): string {
-  const secret = getServerSecret();
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
-  return `${data}.${signature}`;
-}
+import { verifyAdminPassword, createToken } from '../../src/server/auth';
 
 async function parseRequestBody(req: any): Promise<any> {
   if (req.body !== undefined && req.body !== null) {
@@ -115,16 +38,14 @@ async function parseRequestBody(req: any): Promise<any> {
 }
 
 export default async function handler(req: any, res: any) {
-  // Ensure standard response headers
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-  // Only allow POST requests
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({
       success: false,
-      message: 'Method Not Allowed. Gunakan POST untuk endpoint ini.',
+      message: 'Method Not Allowed. Gunakan POST untuk endpoint login.',
     });
   }
 
@@ -140,7 +61,6 @@ export default async function handler(req: any, res: any) {
 
     const { password } = body;
 
-    // Validate input presence
     if (!password || typeof password !== 'string' || password.trim().length === 0) {
       return res.status(400).json({
         success: false,
@@ -151,11 +71,10 @@ export default async function handler(req: any, res: any) {
     const isMatch = verifyAdminPassword(password);
 
     if (!isMatch) {
-      // Small artificial delay to mitigate brute-force timing attacks
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       return res.status(401).json({
         success: false,
-        message: 'Password atau PIN admin salah. Gunakan default: reyadmin',
+        message: 'Password atau PIN admin salah.',
       });
     }
 
@@ -174,7 +93,6 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({
       success: false,
       message: 'Terjadi kesalahan internal server saat memproses login.',
-      error: err?.message || 'Internal Server Error',
     });
   }
 }

@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import {
   ProfileData,
   initialProfileData,
@@ -6,68 +5,7 @@ import {
   saveStoredProfile,
   resetStoredProfile,
 } from '../src/server/profileStore';
-
-function getAdminPassword(): string {
-  const pwd = process.env.ADMIN_PASWORD_REY || process.env.admin_pasword_rey;
-  if (!pwd || typeof pwd !== 'string') return 'reyadmin';
-  const trimmed = pwd.trim().replace(/^["'](.*)["']$/, '$1');
-  return trimmed.length > 0 ? trimmed : 'reyadmin';
-}
-
-function getServerSecret(): string {
-  if (process.env.ADMIN_SECRET && process.env.ADMIN_SECRET.trim().length > 0) {
-    return process.env.ADMIN_SECRET.trim().replace(/^["'](.*)["']$/, '$1');
-  }
-  const pwd = getAdminPassword();
-  if (pwd) {
-    return crypto
-      .createHmac('sha256', 'rey-profil-auth-salt-stable-v1')
-      .update(pwd)
-      .digest('hex');
-  }
-  return 'fallback-rey-profil-secret-salt-2026';
-}
-
-function verifyToken(token: string | undefined | null): boolean {
-  if (!token || typeof token !== 'string') return false;
-
-  const parts = token.split('.');
-  if (parts.length !== 2) return false;
-
-  const [data, signature] = parts;
-  const secret = getServerSecret();
-  const expectedSig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
-
-  const sigBuf = Buffer.from(signature);
-  const expBuf = Buffer.from(expectedSig);
-
-  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-    return false;
-  }
-
-  try {
-    const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf-8'));
-    if (typeof payload.exp !== 'number' || payload.exp < Date.now()) return false;
-    return payload.role === 'admin';
-  } catch {
-    return false;
-  }
-}
-
-function extractToken(req: any): string | null {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    return authHeader.slice(7).trim();
-  }
-
-  const cookieHeader = req.headers?.cookie;
-  if (typeof cookieHeader === 'string') {
-    const match = cookieHeader.match(/rey_admin_token=([^;]+)/);
-    if (match) return decodeURIComponent(match[1]);
-  }
-
-  return null;
-}
+import { verifyToken, extractToken } from '../src/server/auth';
 
 async function parseRequestBody(req: any): Promise<any> {
   if (req.body !== undefined && req.body !== null) {
@@ -105,6 +43,44 @@ async function parseRequestBody(req: any): Promise<any> {
   });
 }
 
+function sanitizeProfileData(input: any): ProfileData {
+  const safeName = typeof input.name === 'string' && input.name.trim().length > 0 ? input.name.trim() : initialProfileData.name;
+
+  return {
+    name: safeName,
+    username: typeof input.username === 'string' ? input.username.trim() : initialProfileData.username,
+    title: typeof input.title === 'string' ? input.title.trim() : initialProfileData.title,
+    bio: typeof input.bio === 'string' ? input.bio.trim() : initialProfileData.bio,
+    avatarUrl: typeof input.avatarUrl === 'string' && input.avatarUrl.trim().length > 0 ? input.avatarUrl.trim() : initialProfileData.avatarUrl,
+    status: typeof input.status === 'string' ? input.status.trim() : initialProfileData.status,
+    isAvailable: typeof input.isAvailable === 'boolean' ? input.isAvailable : Boolean(input.isAvailable),
+    announcement: input.announcement ? {
+      enabled: Boolean(input.announcement.enabled),
+      text: typeof input.announcement.text === 'string' ? input.announcement.text : '',
+      link: typeof input.announcement.link === 'string' ? input.announcement.link : undefined,
+    } : initialProfileData.announcement,
+    about: {
+      heading: input.about?.heading || initialProfileData.about.heading,
+      paragraphs: Array.isArray(input.about?.paragraphs) ? input.about.paragraphs : [input.about?.paragraphs || ''].filter(Boolean),
+      quote: typeof input.about?.quote === 'string' ? input.about.quote : initialProfileData.about.quote,
+    },
+    interests: Array.isArray(input.interests) ? input.interests : initialProfileData.interests,
+    skills: Array.isArray(input.skills) ? input.skills : initialProfileData.skills,
+    currentlyDoing: typeof input.currentlyDoing === 'string' ? input.currentlyDoing : initialProfileData.currentlyDoing,
+    favoriteStack: Array.isArray(input.favoriteStack) ? input.favoriteStack : initialProfileData.favoriteStack,
+    links: Array.isArray(input.links) ? input.links : initialProfileData.links,
+    projects: Array.isArray(input.projects) ? input.projects : initialProfileData.projects,
+    contact: {
+      reyWhatsApp: input.contact?.reyWhatsApp || initialProfileData.contact.reyWhatsApp,
+      parentWhatsApp: input.contact?.parentWhatsApp || initialProfileData.contact.parentWhatsApp,
+      email: input.contact?.email || initialProfileData.contact.email,
+      location: input.contact?.location || initialProfileData.contact.location,
+      note: input.contact?.note || initialProfileData.contact.note,
+    },
+    lastUpdated: new Date().toISOString().split('T')[0],
+  };
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
 
@@ -121,11 +97,7 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json(profile);
     } catch (err: any) {
       console.error('[API Profile GET Error]:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Gagal memuat profil.',
-        error: err?.message || 'Internal Server Error',
-      });
+      return res.status(200).json(initialProfileData);
     }
   }
 
@@ -136,36 +108,40 @@ export default async function handler(req: any, res: any) {
     if (!token || !verifyToken(token)) {
       return res.status(401).json({
         success: false,
-        message: 'Akses ditolak. Token tidak valid atau sesi admin telah berakhir.',
+        message: 'Akses ditolak. Token tidak valid atau sesi admin telah berakhir. Silakan login kembali.',
       });
     }
 
     try {
       const body = await parseRequestBody(req);
-      if (!body || typeof body !== 'object' || !body.name) {
+      if (!body || typeof body !== 'object') {
         return res.status(400).json({
           success: false,
-          message: 'Format data profil tidak valid atau tidak lengkap.',
+          message: 'Format request body tidak valid (harus JSON objek).',
         });
       }
 
-      const formatted: ProfileData = {
-        ...body,
-        lastUpdated: new Date().toISOString().split('T')[0],
-      };
+      if (!body.name || (typeof body.name === 'string' && body.name.trim().length === 0)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nama profil wajib diisi dan tidak boleh kosong.',
+        });
+      }
+
+      const formatted = sanitizeProfileData(body);
 
       await saveStoredProfile(formatted);
 
       return res.status(200).json({
         success: true,
-        message: 'Profil Rey berhasil diperbarui.',
+        message: 'Profil Rey berhasil diperbarui dan disimpan.',
         profile: formatted,
       });
     } catch (err: any) {
       console.error('[API Profile PUT Error]:', err);
       return res.status(500).json({
         success: false,
-        message: err?.message || 'Gagal menyimpan pembaruan profil.',
+        message: `Terjadi kendala saat menyimpan data: ${err?.message || 'Kesalahan server'}`,
       });
     }
   }
@@ -197,9 +173,9 @@ export default async function handler(req: any, res: any) {
     }
   }
 
-  res.setHeader('Allow', 'GET, PUT, DELETE, POST');
+  res.setHeader('Allow', 'GET, PUT, POST, DELETE');
   return res.status(405).json({
     success: false,
-    message: 'Method Not Allowed. Gunakan GET atau PUT.',
+    message: 'Method Not Allowed. Gunakan GET untuk melihat atau PUT/POST untuk menyimpan.',
   });
 }

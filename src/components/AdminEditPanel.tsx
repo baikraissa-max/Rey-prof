@@ -136,20 +136,43 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
     setSaveStatus('idle');
     setErrorMessage(null);
 
-    // Always keep a local copy as safety net
+    // Prepare clean payload with trimmed strings
+    const payload: ProfileData = {
+      ...formData,
+      name: formData.name.trim(),
+      username: (formData.username || '').trim(),
+      title: (formData.title || '').trim(),
+      bio: (formData.bio || '').trim(),
+      status: (formData.status || '').trim(),
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+
+    // Always keep a local copy as instant safety net
     try {
-      localStorage.setItem('rey_profile_saved', JSON.stringify(formData));
+      localStorage.setItem('rey_profile_saved', JSON.stringify(payload));
     } catch {}
 
     try {
-      const response = await fetch('/api/profile', {
+      let response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
+
+      // If method PUT is blocked or returns 405, fallback to POST
+      if (response.status === 405) {
+        response = await fetch('/api/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      }
 
       let resData: any = {};
       const resText = await response.text().catch(() => '');
@@ -160,8 +183,12 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
       }
 
       if (response.ok && (resData.success || resData.profile || resData.name)) {
+        const savedProfile = resData.profile || payload;
         setSaveStatus('success');
-        onSaveSuccess(formData);
+        try {
+          localStorage.setItem('rey_profile_saved', JSON.stringify(savedProfile));
+        } catch {}
+        onSaveSuccess(savedProfile);
         setTimeout(() => setSaveStatus('idle'), 2500);
       } else {
         setSaveStatus('error');
@@ -170,11 +197,18 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
         } else if (response.status === 403) {
           setErrorMessage('Akses ditolak (403).');
         } else if (response.status === 404) {
-          setErrorMessage('Endpoint API /api/profile tidak ditemukan (404).');
+          setErrorMessage('Endpoint API /api/profile tidak ditemukan (404). Pastikan deployment Vercel selesai.');
         } else if (response.status === 413) {
-          setErrorMessage('Ukuran data atau gambar terlalu besar (413).');
+          setErrorMessage('Ukuran data atau gambar terlalu besar (413). Gunakan gambar dengan ukuran lebih kecil.');
+        } else if (response.status >= 500) {
+          const detail = resData.message || resData.error || resText || '';
+          setErrorMessage(
+            detail.length > 0
+              ? `Terjadi kendala server saat menyimpan (${response.status}): ${detail}`
+              : `Terjadi kesalahan server saat menyimpan (${response.status}). Periksa log serverless.`
+          );
         } else {
-          setErrorMessage(resData.message || resData.error || 'Gagal menyimpan perubahan ke server.');
+          setErrorMessage(resData.message || resData.error || `Gagal menyimpan perubahan ke server (Status ${response.status}).`);
         }
       }
     } catch (err: any) {
