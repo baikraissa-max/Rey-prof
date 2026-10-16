@@ -1,7 +1,9 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { 
   getAdminPassword, 
@@ -18,8 +20,6 @@ import {
 } from './src/server/profileStore';
 import { ProfileData } from './src/types';
 import { put } from '@vercel/blob';
-
-dotenv.config();
 
 const PORT = 3000;
 

@@ -1,70 +1,7 @@
 {
-  "name": "REY DIGITAL",
-  "username": "@reydigital",
-  "title": "Digital Creator & Creative Engineer",
-  "bio": "Portfolio resmi Rey - Desain & Rekayasa Antarmuka.",
-  "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=85",
-  "status": "Available for collaboration",
+  "name": "Rey Digital",
+  "bio": "Saved and verified across dev & vercel handlers",
+  "title": "Creator & Developer",
   "isAvailable": true,
-  "announcement": {
-    "enabled": true,
-    "text": "Portofolio telah berhasil diperbarui!",
-    "link": "#projects"
-  },
-  "about": {
-    "heading": "Membangun dengan presisi dan ketenangan.",
-    "paragraphs": [
-      "Saya Rey, digital creator dan creative developer."
-    ],
-    "quote": "Kesederhanaan adalah hasil dari kedalaman."
-  },
-  "interests": [
-    "Tactile Interfaces",
-    "Typography",
-    "Motion"
-  ],
-  "skills": [
-    "TypeScript",
-    "React",
-    "Tailwind CSS",
-    "Node.js"
-  ],
-  "currentlyDoing": "Mengembangkan sistem desain liquid glass.",
-  "favoriteStack": [
-    "TypeScript",
-    "React",
-    "Vite",
-    "Tailwind"
-  ],
-  "links": [
-    {
-      "id": "l-yt",
-      "platform": "youtube",
-      "label": "YouTube",
-      "url": "https://youtube.com/@rey",
-      "username": "@rey.creative",
-      "enabled": true
-    }
-  ],
-  "projects": [
-    {
-      "id": "p-1",
-      "title": "Aether Canvas",
-      "tagline": "Spatial Audio & Sound Engine",
-      "description": "Eksperimen kanvas interaktif.",
-      "category": "Interactive & Audio",
-      "link": "https://github.com",
-      "imageUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
-      "featured": true,
-      "year": "2025"
-    }
-  ],
-  "contact": {
-    "reyWhatsApp": "https://wa.me/6281234567890",
-    "parentWhatsApp": "https://wa.me/6281987654321",
-    "email": "hello@reydigital.me",
-    "location": "Jakarta, Indonesia",
-    "note": "Hubungi untuk kolaborasi resmi."
-  },
   "lastUpdated": "2026-10-16"
 }
