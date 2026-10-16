@@ -126,9 +126,20 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
 
   // Save to backend
   const handleSave = async () => {
+    if (!formData.name || !formData.name.trim()) {
+      setSaveStatus('error');
+      setErrorMessage('Nama profil tidak boleh kosong.');
+      return;
+    }
+
     setIsSaving(true);
     setSaveStatus('idle');
     setErrorMessage(null);
+
+    // Always keep a local copy as safety net
+    try {
+      localStorage.setItem('rey_profile_saved', JSON.stringify(formData));
+    } catch {}
 
     try {
       const response = await fetch('/api/profile', {
@@ -140,17 +151,15 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
         body: JSON.stringify(formData)
       });
 
-      const contentType = response.headers.get('content-type') || '';
       let resData: any = {};
-      if (contentType.includes('application/json')) {
-        try {
-          resData = await response.json();
-        } catch {
-          resData = {};
-        }
+      const resText = await response.text().catch(() => '');
+      try {
+        resData = JSON.parse(resText);
+      } catch {
+        resData = { message: resText };
       }
 
-      if (response.ok && resData.success) {
+      if (response.ok && (resData.success || resData.profile || resData.name)) {
         setSaveStatus('success');
         onSaveSuccess(formData);
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -162,15 +171,15 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
           setErrorMessage('Akses ditolak (403).');
         } else if (response.status === 404) {
           setErrorMessage('Endpoint API /api/profile tidak ditemukan (404).');
-        } else if (response.status >= 500) {
-          setErrorMessage(resData.message || resData.error || 'Terjadi kesalahan server saat menyimpan (500).');
+        } else if (response.status === 413) {
+          setErrorMessage('Ukuran data atau gambar terlalu besar (413).');
         } else {
-          setErrorMessage(resData.message || resData.error || 'Gagal menyimpan perubahan.');
+          setErrorMessage(resData.message || resData.error || 'Gagal menyimpan perubahan ke server.');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       setSaveStatus('error');
-      setErrorMessage('Server atau API tidak dapat dihubungi (Network error).');
+      setErrorMessage(err?.message || 'Server atau API tidak dapat dihubungi (Network error).');
     } finally {
       setIsSaving(false);
     }

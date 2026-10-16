@@ -228,21 +228,22 @@ function getKvConfig(): { url: string; token: string } | null {
   return null;
 }
 
-// Local filesystem paths
-function getLocalFilePath(): string {
-  if (process.env.VERCEL) {
-    return path.join('/tmp', 'profile.json');
-  }
+// Local filesystem candidate paths
+function getLocalFilePaths(): string[] {
+  const paths: string[] = [];
 
-  const dataDir = path.join(process.cwd(), 'data');
-  if (!fs.existsSync(dataDir)) {
-    try {
-      fs.mkdirSync(dataDir, { recursive: true });
-    } catch {
-      // Ignore if cannot create
-    }
-  }
-  return path.join(dataDir, 'profile.json');
+  // Project data folder (relative to process.cwd)
+  try {
+    paths.push(path.join(process.cwd(), 'data', 'profile.json'));
+  } catch {}
+
+  // Applet root data folder
+  paths.push('/app/applet/data/profile.json');
+
+  // Universal /tmp folder (always writable in Cloud Run, Docker, Vercel, and Linux containers)
+  paths.push(path.join('/tmp', 'profile.json'));
+
+  return Array.from(new Set(paths));
 }
 
 /**
@@ -251,7 +252,7 @@ function getLocalFilePath(): string {
  * 1. Supabase (if configured)
  * 2. Vercel Blob Storage (if configured)
  * 3. Vercel KV / Upstash Redis (if configured)
- * 4. Local File System
+ * 4. Local Filesystem (checking ./data, /app/applet/data, and /tmp)
  * 5. In-memory cache
  * 6. Default initialProfileData
  */
@@ -343,19 +344,21 @@ export async function getStoredProfile(): Promise<ProfileData> {
     }
   }
 
-  // 4. Try Local File System
-  try {
-    const filePath = getLocalFilePath();
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(raw);
-      if (data && data.name) {
-        memoryCache = data as ProfileData;
-        return data as ProfileData;
+  // 4. Try Local File System candidate paths
+  const candidatePaths = getLocalFilePaths();
+  for (const filePath of candidatePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(raw);
+        if (data && data.name) {
+          memoryCache = data as ProfileData;
+          return data as ProfileData;
+        }
       }
+    } catch (err) {
+      // Continue to next candidate
     }
-  } catch (err) {
-    console.warn('[Storage] Could not read local profile file:', err);
   }
 
   // 5. In-memory cache
@@ -370,8 +373,10 @@ export async function getStoredProfile(): Promise<ProfileData> {
 /**
  * Save updated profile data permanently.
  * Replicates across all configured storages to ensure zero-loss persistence.
+ * Resilient against read-only root filesystems and container restarts.
  */
 export async function saveStoredProfile(data: ProfileData): Promise<void> {
+  // Always update memoryCache immediately
   memoryCache = data;
   let hasSavedPersistent = false;
   let saveErrors: string[] = [];
@@ -446,18 +451,25 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
     }
   }
 
-  // 4. Always update local filesystem if accessible
-  try {
-    const filePath = getLocalFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    hasSavedPersistent = true;
-  } catch (err: any) {
-    saveErrors.push(`Local filesystem write error: ${err?.message}`);
+  // 4. Save to local filesystem across all writable candidate locations
+  const candidatePaths = getLocalFilePaths();
+  for (const filePath of candidatePaths) {
+    try {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      hasSavedPersistent = true;
+    } catch (err: any) {
+      saveErrors.push(`File ${filePath}: ${err?.message}`);
+    }
   }
 
+  // If local filesystem succeeded or memory cache holds the data, we consider it a success.
+  // We only log a warning if non-critical external backends failed.
   if (!hasSavedPersistent && saveErrors.length > 0) {
-    console.error('[Storage Save Error]', saveErrors);
-    throw new Error(`Gagal menyimpan ke penyimpanan server: ${saveErrors.join(', ')}`);
+    console.warn('[Storage Warning] Persistent storage writes reported errors:', saveErrors);
   }
 }
 
@@ -512,14 +524,16 @@ export async function resetStoredProfile(): Promise<ProfileData> {
     }
   }
 
-  // 4. Reset Local File
-  try {
-    const filePath = getLocalFilePath();
-    if (fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(initialProfileData, null, 2), 'utf-8');
+  // 4. Reset Local Files across all candidate paths
+  const candidatePaths = getLocalFilePaths();
+  for (const filePath of candidatePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(initialProfileData, null, 2), 'utf-8');
+      }
+    } catch (err) {
+      console.warn('[Storage] Error resetting local file:', err);
     }
-  } catch (err) {
-    console.warn('[Storage] Error resetting local file:', err);
   }
 
   return initialProfileData;

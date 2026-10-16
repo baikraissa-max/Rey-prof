@@ -20,8 +20,63 @@ interface ImagePickerFieldProps {
   id?: string;
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+async function compressImageFile(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  if (file.size < 250 * 1024 || file.type === 'image/svg+xml' || file.type === 'image/gif') {
+    return { blob: file, mimeType: file.type };
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve({ blob: file, mimeType: file.type });
+
+        const isPng = file.type === 'image/png' && file.size < 1.5 * 1024 * 1024;
+        const targetMime = isPng ? 'image/png' : 'image/jpeg';
+        const quality = 0.85;
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              resolve({ blob, mimeType: targetMime });
+            } else {
+              resolve({ blob: file, mimeType: file.type });
+            }
+          },
+          targetMime,
+          quality
+        );
+      };
+      img.onerror = () => resolve({ blob: file, mimeType: file.type });
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve({ blob: file, mimeType: file.type });
+    reader.readAsDataURL(file);
+  });
+}
 
 export const ImagePickerField: React.FC<ImagePickerFieldProps> = ({
   label,
@@ -61,30 +116,38 @@ export const ImagePickerField: React.FC<ImagePickerFieldProps> = ({
       return;
     }
 
-    // 2. Validasi Ukuran File (Maks 5MB)
+    // 2. Validasi Ukuran File (Maks 15MB)
     if (file.size > MAX_FILE_SIZE) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      setErrorMessage(`Ukuran file terlalu besar (${sizeMB} MB). Maksimal ukuran file adalah 5 MB.`);
+      setErrorMessage(`Ukuran file terlalu besar (${sizeMB} MB). Maksimal ukuran file adalah 15 MB.`);
       return;
     }
 
     setFileName(file.name);
     setIsUploading(true);
-    setUploadProgress('Mengunggah gambar...');
+    setUploadProgress('Mengoptimalkan & mengunggah gambar...');
 
     try {
+      // Optimasi gambar di browser terlebih dahulu
+      const { blob, mimeType } = await compressImageFile(file);
+
       // 3. Upload file ke endpoint backend /api/upload
       const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': file.type,
+          'Content-Type': mimeType,
           'X-File-Name': encodeURIComponent(file.name),
         },
-        body: file,
+        body: blob,
       });
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Gagal mengunggah gambar ke storage.');

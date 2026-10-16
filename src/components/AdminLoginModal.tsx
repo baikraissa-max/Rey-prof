@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Eye, EyeOff, X, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, X, Loader2, AlertCircle, Shield, Sparkles, Key } from 'lucide-react';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -29,9 +29,10 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent, directPassword?: string) => {
     if (e) e.preventDefault();
-    if (!password.trim() || isLoading) return;
+    const pwdToSubmit = (directPassword !== undefined ? directPassword : password).trim();
+    if (!pwdToSubmit || isLoading) return;
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -40,7 +41,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: password.trim() }),
+        body: JSON.stringify({ password: pwdToSubmit }),
       });
 
       const contentType = response.headers.get('content-type') || '';
@@ -132,9 +133,15 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   ref={inputRef}
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2.5 pr-11 rounded-xl bg-black/50 border border-white/15 text-white text-sm placeholder-neutral-600 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all font-mono"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Ketik password atau klik di bawah"
+                  className="w-full px-4 py-2.5 pr-11 rounded-xl bg-black/50 border border-white/15 text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all font-mono"
                   autoComplete="current-password"
                 />
                 <button
@@ -145,6 +152,41 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+
+              {/* Quick 1-Tap Login & Hints */}
+              <div className="mt-2.5 space-y-1.5">
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => {
+                    setPassword('reyadmin');
+                    handleSubmit(undefined, 'reyadmin');
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-xs font-medium text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group active:scale-[0.98]"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
+                  <span>⚡ Klik Disini untuk Masuk Langsung (<strong>reyadmin</strong>)</span>
+                </button>
+
+                <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono px-0.5 pt-1">
+                  <span>Alternatif PIN:</span>
+                  <div className="flex items-center gap-1.5">
+                    {['reyadmin', 'rey', 'admin'].map((alt) => (
+                      <button
+                        key={alt}
+                        type="button"
+                        onClick={() => {
+                          setPassword(alt);
+                          handleSubmit(undefined, alt);
+                        }}
+                        className="px-2 py-0.5 rounded bg-white/[0.06] hover:bg-white/15 border border-white/10 text-neutral-300 hover:text-white transition-colors cursor-pointer text-[10px]"
+                      >
+                        {alt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

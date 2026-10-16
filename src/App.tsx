@@ -22,6 +22,18 @@ export default function App() {
 
   // Fetch initial profile data from backend with strict cache-busting
   useEffect(() => {
+    // 1. Immediately restore latest saved draft from browser cache if available
+    try {
+      const localCached = localStorage.getItem('rey_profile_saved');
+      if (localCached) {
+        const parsed = JSON.parse(localCached);
+        if (parsed && parsed.name) {
+          setProfile(parsed);
+        }
+      }
+    } catch {}
+
+    // 2. Sync with server-authoritative state
     async function loadProfile() {
       try {
         const res = await fetch(`/api/profile?_t=${Date.now()}`, {
@@ -35,6 +47,9 @@ export default function App() {
           const data = await res.json();
           if (data && data.name) {
             setProfile(data);
+            try {
+              localStorage.setItem('rey_profile_saved', JSON.stringify(data));
+            } catch {}
           }
         }
       } catch (err) {
