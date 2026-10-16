@@ -128,3 +128,73 @@ export const initialProfileData: ProfileData = {
   },
   lastUpdated: '2025-05-15'
 };
+
+/**
+ * Normalizes any partial or legacy profile object to guarantee that
+ * every nested field (about, contact, announcement, arrays, etc.) is fully populated
+ * with default fallbacks, preventing undefined errors.
+ */
+export function normalizeProfileData(input: any): ProfileData {
+  if (!input || typeof input !== 'object') {
+    return { ...initialProfileData };
+  }
+
+  const aboutRaw = input.about || {};
+  let paragraphs: string[] = [];
+  if (Array.isArray(aboutRaw.paragraphs) && aboutRaw.paragraphs.length > 0) {
+    paragraphs = aboutRaw.paragraphs.map((p: any) => String(p ?? '').trim()).filter(Boolean);
+  }
+  if (paragraphs.length === 0) {
+    paragraphs = [...initialProfileData.about.paragraphs];
+  }
+
+  const contactRaw = input.contact || {};
+  const announcementRaw = input.announcement || {};
+
+  return {
+    ...initialProfileData,
+    ...input,
+    name: typeof input.name === 'string' && input.name.trim() ? input.name.trim() : initialProfileData.name,
+    username: typeof input.username === 'string' && input.username.trim() ? input.username.trim() : initialProfileData.username,
+    title: typeof input.title === 'string' && input.title.trim() ? input.title.trim() : initialProfileData.title,
+    bio: typeof input.bio === 'string' ? input.bio : initialProfileData.bio,
+    avatarUrl: typeof input.avatarUrl === 'string' && input.avatarUrl.trim() ? input.avatarUrl.trim() : initialProfileData.avatarUrl,
+    status: typeof input.status === 'string' && input.status.trim() ? input.status.trim() : initialProfileData.status,
+    isAvailable: typeof input.isAvailable === 'boolean' ? input.isAvailable : Boolean(input.isAvailable ?? true),
+    announcement: {
+      enabled: Boolean(announcementRaw.enabled ?? initialProfileData.announcement?.enabled),
+      text: typeof announcementRaw.text === 'string' ? announcementRaw.text : (initialProfileData.announcement?.text || ''),
+      link: typeof announcementRaw.link === 'string' ? announcementRaw.link : initialProfileData.announcement?.link,
+    },
+    about: {
+      heading: typeof aboutRaw.heading === 'string' && aboutRaw.heading.trim() 
+        ? aboutRaw.heading.trim() 
+        : initialProfileData.about.heading,
+      paragraphs,
+      quote: typeof aboutRaw.quote === 'string' ? aboutRaw.quote : initialProfileData.about.quote,
+    },
+    interests: Array.isArray(input.interests) && input.interests.length > 0 ? input.interests : initialProfileData.interests,
+    skills: Array.isArray(input.skills) && input.skills.length > 0 ? input.skills : initialProfileData.skills,
+    currentlyDoing: typeof input.currentlyDoing === 'string' && input.currentlyDoing.trim() 
+      ? input.currentlyDoing.trim() 
+      : initialProfileData.currentlyDoing,
+    favoriteStack: Array.isArray(input.favoriteStack) && input.favoriteStack.length > 0 ? input.favoriteStack : initialProfileData.favoriteStack,
+    links: Array.isArray(input.links) && input.links.length > 0 ? input.links : initialProfileData.links,
+    projects: Array.isArray(input.projects) && input.projects.length > 0 ? input.projects : initialProfileData.projects,
+    contact: {
+      reyWhatsApp: typeof contactRaw.reyWhatsApp === 'string' && contactRaw.reyWhatsApp.trim() 
+        ? contactRaw.reyWhatsApp.trim() 
+        : initialProfileData.contact.reyWhatsApp,
+      parentWhatsApp: typeof contactRaw.parentWhatsApp === 'string' && contactRaw.parentWhatsApp.trim() 
+        ? contactRaw.parentWhatsApp.trim() 
+        : initialProfileData.contact.parentWhatsApp,
+      email: typeof contactRaw.email === 'string' && contactRaw.email.trim() 
+        ? contactRaw.email.trim() 
+        : initialProfileData.contact.email,
+      location: typeof contactRaw.location === 'string' ? contactRaw.location : initialProfileData.contact.location,
+      note: typeof contactRaw.note === 'string' ? contactRaw.note : initialProfileData.contact.note,
+    },
+    lastUpdated: typeof input.lastUpdated === 'string' ? input.lastUpdated : new Date().toISOString().split('T')[0],
+  };
+}
+

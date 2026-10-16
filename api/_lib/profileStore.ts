@@ -187,6 +187,75 @@ export const initialProfileData: ProfileData = {
   lastUpdated: '2025-05-15'
 };
 
+/**
+ * Normalizes any partial or legacy profile object to guarantee that
+ * every nested field (about, contact, announcement, arrays, etc.) is fully populated
+ * with default fallbacks, preventing undefined errors.
+ */
+export function normalizeProfileData(input: any): ProfileData {
+  if (!input || typeof input !== 'object') {
+    return { ...initialProfileData };
+  }
+
+  const aboutRaw = input.about || {};
+  let paragraphs: string[] = [];
+  if (Array.isArray(aboutRaw.paragraphs) && aboutRaw.paragraphs.length > 0) {
+    paragraphs = aboutRaw.paragraphs.map((p: any) => String(p ?? '').trim()).filter(Boolean);
+  }
+  if (paragraphs.length === 0) {
+    paragraphs = [...initialProfileData.about.paragraphs];
+  }
+
+  const contactRaw = input.contact || {};
+  const announcementRaw = input.announcement || {};
+
+  return {
+    ...initialProfileData,
+    ...input,
+    name: typeof input.name === 'string' && input.name.trim() ? input.name.trim() : initialProfileData.name,
+    username: typeof input.username === 'string' && input.username.trim() ? input.username.trim() : initialProfileData.username,
+    title: typeof input.title === 'string' && input.title.trim() ? input.title.trim() : initialProfileData.title,
+    bio: typeof input.bio === 'string' ? input.bio : initialProfileData.bio,
+    avatarUrl: typeof input.avatarUrl === 'string' && input.avatarUrl.trim() ? input.avatarUrl.trim() : initialProfileData.avatarUrl,
+    status: typeof input.status === 'string' && input.status.trim() ? input.status.trim() : initialProfileData.status,
+    isAvailable: typeof input.isAvailable === 'boolean' ? input.isAvailable : Boolean(input.isAvailable ?? true),
+    announcement: {
+      enabled: Boolean(announcementRaw.enabled ?? initialProfileData.announcement?.enabled),
+      text: typeof announcementRaw.text === 'string' ? announcementRaw.text : (initialProfileData.announcement?.text || ''),
+      link: typeof announcementRaw.link === 'string' ? announcementRaw.link : initialProfileData.announcement?.link,
+    },
+    about: {
+      heading: typeof aboutRaw.heading === 'string' && aboutRaw.heading.trim() 
+        ? aboutRaw.heading.trim() 
+        : initialProfileData.about.heading,
+      paragraphs,
+      quote: typeof aboutRaw.quote === 'string' ? aboutRaw.quote : initialProfileData.about.quote,
+    },
+    interests: Array.isArray(input.interests) && input.interests.length > 0 ? input.interests : initialProfileData.interests,
+    skills: Array.isArray(input.skills) && input.skills.length > 0 ? input.skills : initialProfileData.skills,
+    currentlyDoing: typeof input.currentlyDoing === 'string' && input.currentlyDoing.trim() 
+      ? input.currentlyDoing.trim() 
+      : initialProfileData.currentlyDoing,
+    favoriteStack: Array.isArray(input.favoriteStack) && input.favoriteStack.length > 0 ? input.favoriteStack : initialProfileData.favoriteStack,
+    links: Array.isArray(input.links) && input.links.length > 0 ? input.links : initialProfileData.links,
+    projects: Array.isArray(input.projects) && input.projects.length > 0 ? input.projects : initialProfileData.projects,
+    contact: {
+      reyWhatsApp: typeof contactRaw.reyWhatsApp === 'string' && contactRaw.reyWhatsApp.trim() 
+        ? contactRaw.reyWhatsApp.trim() 
+        : initialProfileData.contact.reyWhatsApp,
+      parentWhatsApp: typeof contactRaw.parentWhatsApp === 'string' && contactRaw.parentWhatsApp.trim() 
+        ? contactRaw.parentWhatsApp.trim() 
+        : initialProfileData.contact.parentWhatsApp,
+      email: typeof contactRaw.email === 'string' && contactRaw.email.trim() 
+        ? contactRaw.email.trim() 
+        : initialProfileData.contact.email,
+      location: typeof contactRaw.location === 'string' ? contactRaw.location : initialProfileData.contact.location,
+      note: typeof contactRaw.note === 'string' ? contactRaw.note : initialProfileData.contact.note,
+    },
+    lastUpdated: typeof input.lastUpdated === 'string' ? input.lastUpdated : new Date().toISOString().split('T')[0],
+  };
+}
+
 const KV_KEY = 'rey_profile_v1';
 const BLOB_PATHNAME = 'rey-profile/profile.json';
 
@@ -288,8 +357,8 @@ export async function getStoredProfile(): Promise<ProfileData> {
       );
       if (res.ok) {
         const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0 && rows[0]?.data?.name) {
-          const profile = rows[0].data as ProfileData;
+        if (Array.isArray(rows) && rows.length > 0 && rows[0]?.data) {
+          const profile = normalizeProfileData(rows[0].data);
           memoryCache = profile;
           return profile;
         }
@@ -321,9 +390,10 @@ export async function getStoredProfile(): Promise<ProfileData> {
 
         if (blobRes.ok) {
           const json = await blobRes.json();
-          if (json && json.name) {
-            memoryCache = json as ProfileData;
-            return json as ProfileData;
+          if (json && typeof json === 'object') {
+            const profile = normalizeProfileData(json);
+            memoryCache = profile;
+            return profile;
           }
         }
       }
@@ -347,9 +417,10 @@ export async function getStoredProfile(): Promise<ProfileData> {
         const json = await res.json();
         if (json && json.result) {
           const parsed = typeof json.result === 'string' ? JSON.parse(json.result) : json.result;
-          if (parsed && parsed.name) {
-            memoryCache = parsed as ProfileData;
-            return parsed as ProfileData;
+          if (parsed && typeof parsed === 'object') {
+            const profile = normalizeProfileData(parsed);
+            memoryCache = profile;
+            return profile;
           }
         }
       }
@@ -365,9 +436,10 @@ export async function getStoredProfile(): Promise<ProfileData> {
       if (fs.existsSync(filePath)) {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(raw);
-        if (data && data.name) {
-          memoryCache = data as ProfileData;
-          return data as ProfileData;
+        if (data && typeof data === 'object') {
+          const profile = normalizeProfileData(data);
+          memoryCache = profile;
+          return profile;
         }
       }
     } catch {
@@ -377,11 +449,11 @@ export async function getStoredProfile(): Promise<ProfileData> {
 
   // 5. In-memory cache
   if (memoryCache && memoryCache.name) {
-    return memoryCache;
+    return normalizeProfileData(memoryCache);
   }
 
   // 6. Fallback to Initial Profile Data
-  return initialProfileData;
+  return { ...initialProfileData };
 }
 
 /**
@@ -390,8 +462,9 @@ export async function getStoredProfile(): Promise<ProfileData> {
  * Resilient against read-only root filesystems and container restarts.
  */
 export async function saveStoredProfile(data: ProfileData): Promise<void> {
+  const normalized = normalizeProfileData(data);
   // Always update memoryCache immediately
-  memoryCache = data;
+  memoryCache = normalized;
   let hasSavedPersistent = false;
   const saveErrors: string[] = [];
 
@@ -409,7 +482,7 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
         },
         body: JSON.stringify({
           id: KV_KEY,
-          data: data,
+          data: normalized,
           updated_at: new Date().toISOString(),
         }),
       });
@@ -429,7 +502,7 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
   const blob = getBlobConfig();
   if (blob) {
     try {
-      await put(BLOB_PATHNAME, JSON.stringify(data, null, 2), {
+      await put(BLOB_PATHNAME, JSON.stringify(normalized, null, 2), {
         access: 'public',
         contentType: 'application/json',
         addRandomSuffix: false,
@@ -453,7 +526,7 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
           Authorization: `Bearer ${kv.token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(['SET', KV_KEY, JSON.stringify(data)]),
+        body: JSON.stringify(['SET', KV_KEY, JSON.stringify(normalized)]),
       });
 
       if (cmdRes.ok) {
@@ -466,7 +539,7 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
             Authorization: `Bearer ${kv.token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(normalized),
         });
 
         if (res.ok) {
@@ -488,7 +561,7 @@ export async function saveStoredProfile(data: ProfileData): Promise<void> {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2), 'utf-8');
       hasSavedPersistent = true;
     } catch (err: any) {
       saveErrors.push(`File ${filePath}: ${err?.message || err}`);

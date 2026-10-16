@@ -9,7 +9,7 @@ import { LiquidNavbar, NavTabId } from './components/LiquidNavbar';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminEditPanel } from './components/AdminEditPanel';
 import { PWAInstallButton } from './components/PWAInstallButton';
-import { initialProfileData } from './data/initialProfile';
+import { initialProfileData, normalizeProfileData } from './data/initialProfile';
 import { ProfileData } from './types';
 import { Sliders, ShieldCheck } from 'lucide-react';
 
@@ -27,8 +27,9 @@ export default function App() {
       const localCached = localStorage.getItem('rey_profile_saved');
       if (localCached) {
         const parsed = JSON.parse(localCached);
-        if (parsed && parsed.name) {
-          setProfile(parsed);
+        if (parsed && typeof parsed === 'object') {
+          const normalized = normalizeProfileData(parsed);
+          setProfile(normalized);
         }
       }
     } catch {}
@@ -45,10 +46,11 @@ export default function App() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data && data.name) {
-            setProfile(data);
+          if (data && typeof data === 'object') {
+            const normalized = normalizeProfileData(data);
+            setProfile(normalized);
             try {
-              localStorage.setItem('rey_profile_saved', JSON.stringify(data));
+              localStorage.setItem('rey_profile_saved', JSON.stringify(normalized));
             } catch {}
           }
         }

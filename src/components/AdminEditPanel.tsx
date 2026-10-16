@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ProfileData, ProjectItem, SocialLink } from '../types';
 import { ImagePickerField } from './ImagePickerField';
+import { normalizeProfileData } from '../data/initialProfile';
 
 interface AdminEditPanelProps {
   initialProfile: ProfileData;
@@ -38,7 +39,7 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
   onClose,
   onLogout,
 }) => {
-  const [formData, setFormData] = useState<ProfileData>(JSON.parse(JSON.stringify(initialProfile)));
+  const [formData, setFormData] = useState<ProfileData>(() => normalizeProfileData(initialProfile));
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -54,7 +55,7 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
   const handleAboutChange = (field: 'heading' | 'paragraphs' | 'quote', value: any) => {
     setFormData((prev) => ({
       ...prev,
-      about: { ...prev.about, [field]: value }
+      about: { ...(prev.about || {}), [field]: value }
     }));
   };
 
@@ -62,7 +63,7 @@ export const AdminEditPanel: React.FC<AdminEditPanelProps> = ({
   const handleContactChange = (field: keyof typeof formData.contact, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      contact: { ...prev.contact, [field]: value }
+      contact: { ...(prev.contact || {}), [field]: value }
     }));
   };
 

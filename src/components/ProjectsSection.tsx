@@ -8,8 +8,9 @@ interface ProjectsSectionProps {
 }
 
 export const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projects }) => {
-  const featuredProject = projects.find((p) => p.featured) || projects[0];
-  const otherProjects = projects.filter((p) => p.id !== featuredProject?.id);
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const featuredProject = safeProjects.find((p) => p.featured) || safeProjects[0];
+  const otherProjects = safeProjects.filter((p) => p.id !== featuredProject?.id);
 
   return (
     <section id="projects" className="py-12 px-4 max-w-2xl mx-auto">

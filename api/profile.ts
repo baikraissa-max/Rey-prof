@@ -5,6 +5,7 @@ import {
   saveStoredProfile,
   resetStoredProfile,
   logStorageDiagnostics,
+  normalizeProfileData,
 } from './_lib/profileStore';
 import { verifyToken, extractToken } from './_lib/auth';
 
@@ -208,7 +209,7 @@ export default async function handler(req: any, res: any) {
           });
         }
 
-        const formatted = sanitizeProfileData(body);
+        const formatted = normalizeProfileData(body);
 
         logStorageDiagnostics();
         await saveStoredProfile(formatted);

@@ -17,7 +17,7 @@ interface LinksSectionProps {
 }
 
 export const LinksSection: React.FC<LinksSectionProps> = ({ links }) => {
-  const enabledLinks = links.filter((l) => l.enabled !== false);
+  const enabledLinks = (links || []).filter((l) => l.enabled !== false);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {

@@ -27,16 +27,22 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ profile }) => {
         className="liquid-glass rounded-2xl p-6 sm:p-8 mb-6 relative overflow-hidden"
       >
         <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 tracking-tight">
-          {profile.about.heading || 'Designing with restraint & depth.'}
+          {profile?.about?.heading || 'Designing with restraint & depth.'}
         </h2>
 
         <div className="space-y-3.5 text-sm sm:text-base text-neutral-300 leading-relaxed">
-          {profile.about.paragraphs.map((para, idx) => (
+          {(profile?.about?.paragraphs && profile.about.paragraphs.length > 0
+            ? profile.about.paragraphs
+            : [
+                'Halo, saya Rey. Seorang digital creator dan developer yang berfokus pada estetika digital modern, performa web yang cepat, dan antarmuka yang memberi rasa tenang.',
+                'Saya percaya bahwa desain digital terbaik bukan yang paling berisik, melainkan yang paling presisi, fungsional, dan memiliki sentuhan humanis.'
+              ]
+          ).map((para, idx) => (
             <p key={idx}>{para}</p>
           ))}
         </div>
 
-        {profile.about.quote && (
+        {profile?.about?.quote && (
           <div className="mt-6 pt-5 border-t border-white/8 flex items-start gap-3">
             <span className="text-neutral-500 font-serif text-2xl leading-none">“</span>
             <p className="text-xs sm:text-sm italic text-neutral-400 font-light">

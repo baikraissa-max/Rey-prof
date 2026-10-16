@@ -9,29 +9,35 @@ interface ContactSectionProps {
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const safeContact = contact || {
+    reyWhatsApp: '',
+    parentWhatsApp: '',
+    email: '',
+    note: '',
+  };
 
   const handleCopyEmail = () => {
-    if (!contact.email) return;
-    navigator.clipboard.writeText(contact.email);
+    if (!safeContact.email) return;
+    navigator.clipboard.writeText(safeContact.email);
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2000);
   };
 
   // Ensure WhatsApp links format safely
-  const getWhatsAppUrl = (val: string, message: string) => {
+  const getWhatsAppUrl = (val?: string, message?: string) => {
     if (!val) return '#';
     if (val.startsWith('http')) return val;
     const cleanNumber = val.replace(/\D/g, '');
-    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message || '')}`;
   };
 
   const reyWhatsAppUrl = getWhatsAppUrl(
-    contact.reyWhatsApp,
+    safeContact.reyWhatsApp,
     'Halo Rey, saya melihat profil digital Anda dan tertarik untuk terhubung.'
   );
 
   const parentWhatsAppUrl = getWhatsAppUrl(
-    contact.parentWhatsApp,
+    safeContact.parentWhatsApp,
     'Halo, saya ingin berkomunikasi mengenai kolaborasi atau jadwal resmi Rey.'
   );
 
@@ -51,7 +57,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contact }) => {
             Let's build something exceptional.
           </h3>
           <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-normal">
-            {contact.note || 'Untuk tawaran proyek, sponsorship, atau kolaborasi resmi, silakan hubungi kontak resmi di bawah ini.'}
+            {safeContact.note || 'Untuk tawaran proyek, sponsorship, atau kolaborasi resmi, silakan hubungi kontak resmi di bawah ini.'}
           </p>
         </div>
 

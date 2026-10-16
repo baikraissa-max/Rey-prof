@@ -16,7 +16,8 @@ import {
 import { 
   getStoredProfile, 
   saveStoredProfile, 
-  resetStoredProfile 
+  resetStoredProfile,
+  normalizeProfileData,
 } from './src/server/profileStore';
 import { ProfileData } from './src/types';
 import { put } from '@vercel/blob';
@@ -188,10 +189,10 @@ async function startServer() {
     }
 
     try {
-      const formatted: ProfileData = {
+      const formatted = normalizeProfileData({
         ...updatedData,
         lastUpdated: new Date().toISOString().split('T')[0],
-      };
+      });
 
       await saveStoredProfile(formatted);
 
